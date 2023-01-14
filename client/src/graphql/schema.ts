@@ -16,7 +16,7 @@ export type Launch = {
 export type Location = {
   name: String;
   longitude: Number;
-  Latitude: Number;
+  latitude: Number;
 }
 
 export type Orbit = {
@@ -30,3 +30,21 @@ export type Payload = {
   available: Number;
 }
 
+
+export enum Type {
+  sunlight,
+  wind,
+  kerosene,
+  electricity
+}
+export type Delivery = {
+  type: Type;
+  quantity: Number;
+  unit: String;
+  icon: String;
+}
+
+export type DeliveryDate = {
+  date: String;
+  deliveries: Delivery[];
+}

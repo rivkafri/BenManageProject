@@ -8,7 +8,7 @@ import { DateTimeResolver } from "graphql-scalars";
 import path from "path";
 import { GraphQLSchema } from "graphql";
 import { Mission } from "./types";
-import { CreateMission, GetMissionById, ListMissions } from "./queries";
+import { CreateMission, GetMissionById, ListMissions, EditMission } from "./queries";
 
 const DATA_DIR = path.join(__dirname, "../.data");
 const DATA_DIR_INIT = path.join(__dirname, "../data/init");
@@ -19,6 +19,7 @@ dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
+
 
 let schema: GraphQLSchema;
 
@@ -81,7 +82,6 @@ const main = async () => {
       Mutation: {
         async createMission(obj, args) {
           const missions = await loadMissions();
-
           const mission = CreateMission(args.mission);
           missions.push(mission);
 
@@ -92,13 +92,37 @@ const main = async () => {
           );
           return mission;
         },
+        async deleteMission(obj, args) {
+          let missions = await loadMissions();
+          const mission = GetMissionById(missions, args.id);
+          missions = missions.filter(m => m.id != args.id);
+
+          await writeFile(
+            path.join(DATA_DIR, DATA_FILE_MISSIONS),
+            JSON.stringify(missions),
+            "utf8"
+          );
+          return mission;
+        },
+        async editMission(obj, args) {
+          let missions = await loadMissions();
+          let mission = GetMissionById(missions, args.id);
+          let newMission = EditMission(mission!, args.mission);
+
+          await writeFile(
+            path.join(DATA_DIR, DATA_FILE_MISSIONS),
+            JSON.stringify(missions),
+            "utf8"
+          );
+          return newMission;
+        },
       },
     },
   });
 
-  app.get("/readme", 
-    async (req : Request, res: Response ) => {
-      const readme : String = await readFile(path.join(__dirname, "../../README.md"), "utf8")
+  app.get("/readme",
+    async (req: Request, res: Response) => {
+      const readme: String = await readFile(path.join(__dirname, "../../README.md"), "utf8")
       res.send(readme);
     }
   );

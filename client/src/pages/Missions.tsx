@@ -1,29 +1,11 @@
 import { SyntheticEvent, useEffect, useState } from "react";
 import { AppLayout } from "../layouts/AppLayout";
 import fetchGraphQL from "../graphql/GraphQL";
-import { Mission } from "../graphql/schema";
+import { Mission, Launch, Orbit, Location, Payload } from "../graphql/schema";
 import {
-  Card,
-  CardHeader,
-  CardActions,
-  CardContent,
-  Button,
-  Grid,
-  Typography,
-  Fab,
-  Dialog,
-  DialogTitle,
-  TextField,
-  DialogContent,
-  DialogActions,
-  Toolbar,
-  Container,
-  IconButton,
-  Tooltip,
-  Snackbar,
-  Alert,
-  Box,
-  CircularProgress,
+  Card, CardHeader, CardActions, CardContent, Button, Grid, Typography, Fab, Dialog, DialogTitle,
+  TextField, DialogContent, DialogActions, Toolbar, Container, IconButton, Tooltip, Snackbar, Alert,
+  Box, CircularProgress,
 } from "@mui/material";
 
 import {
@@ -35,10 +17,10 @@ import {
 } from "@mui/icons-material";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-
 import { ListMenu } from "../components/ListMenu";
+import { MissionDialog } from '../components/MissionDialog';
 
-type SortField = "Title" | "Date";
+type SortField = "Title" | "Date" | "Operator";
 
 interface MissionsResponse {
   data: {
@@ -46,17 +28,29 @@ interface MissionsResponse {
   };
 }
 
+const deleteMission = async (
+  id: String
+): Promise<Mission> => {
+  return await fetchGraphQL(
+    `mutation ($id: String!){
+      deleteMission(id:$id){
+        id
+      }
+    }
+    `,
+    { id: id }
+  );
+};
+
 const getMissions = async (
   sortField: SortField,
-  sortDesc?: Boolean
+  sortDesc: Boolean
 ): Promise<MissionsResponse> => {
   return await fetchGraphQL(
     `
   {
     Missions(
-      sort: {
-        field: ${sortField}
-      }
+      sort: { desc: ${sortDesc}, field:${sortField}}
     ) {
       id
       title
@@ -73,28 +67,14 @@ const getMissions = async (
 
 const Missions = (): JSX.Element => {
   const [missions, setMissions] = useState<Mission[] | null>(null);
-  const [newMissionOpen, setNewMissionOpen] = useState(false);
-  const [tempLaunchDate, setTempLaunchDate] = useState<Date | null>(null);
   const [sortDesc, setSortDesc] = useState<boolean>(false);
   const [sortField, setSortField] = useState<SortField>("Title");
   const [errMessage, setErrMessage] = useState<String | null>(null);
+  const [action, setAction] = useState<boolean>(false);
 
   const handleErrClose = (event?: SyntheticEvent | Event, reason?: string) => {
     if (reason === "clickaway") return;
     setErrMessage(null);
-  };
-
-  const handleNewMissionOpen = () => {
-    setTempLaunchDate(null);
-    setNewMissionOpen(true);
-  };
-
-  const handleNewMissionClose = () => {
-    setNewMissionOpen(false);
-  };
-
-  const handleTempLaunchDateChange = (newValue: Date | null) => {
-    setTempLaunchDate(newValue);
   };
 
   const handleSortFieldChange = (event: SyntheticEvent, value: SortField) => {
@@ -104,8 +84,19 @@ const Missions = (): JSX.Element => {
     setSortDesc(!sortDesc);
   };
 
+  const handleDeleteClick = (id: String) => {
+    if (id) {
+      deleteMission(id)
+        .then((result: Mission) => {
+          setAction(!action);
+        }).catch((err) => {
+          console.log(err);
+        });
+    }
+  }
+
   useEffect(() => {
-    getMissions(sortField)
+    getMissions(sortField, sortDesc)
       .then((result: MissionsResponse) => {
         setMissions(result.data.Missions);
       })
@@ -113,7 +104,7 @@ const Missions = (): JSX.Element => {
         setErrMessage("Failed to load missions.");
         console.log(err);
       });
-  }, [sortField]);
+  }, [sortField, sortDesc, action]);
 
   return (
     <AppLayout title="Missions">
@@ -128,7 +119,7 @@ const Missions = (): JSX.Element => {
               <FilterAltIcon />
             </IconButton>
             <ListMenu
-              options={["Date", "Title"]}
+              options={["Date", "Title", "Operator"]}
               endIcon={<SortIcon />}
               onSelectionChange={handleSortFieldChange}
             />
@@ -152,7 +143,8 @@ const Missions = (): JSX.Element => {
                     <Typography noWrap>{missions.operator}</Typography>
                   </CardContent>
                   <CardActions>
-                    <Button>Edit</Button>
+                    <MissionDialog setErrMessage={setErrMessage} id={missions.id} action={action} setAction={setAction} />
+                    <Button onClick={e => handleDeleteClick(missions.id)}>Delete</Button>
                   </CardActions>
                 </Card>
               </Grid>
@@ -164,65 +156,8 @@ const Missions = (): JSX.Element => {
           </Box>
         )}
 
-        <Tooltip title="New Mission">
-          <Fab
-            sx={{ position: "fixed", bottom: 16, right: 16 }}
-            color="primary"
-            aria-label="add"
-            onClick={handleNewMissionOpen}
-          >
-            <AddIcon />
-          </Fab>
-        </Tooltip>
-        <Dialog
-          open={newMissionOpen}
-          onClose={handleNewMissionClose}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle>New Mission</DialogTitle>
-          <DialogContent>
-            <Grid container direction="column" spacing={2}>
-              <Grid item>
-                <TextField
-                  autoFocus
-                  id="name"
-                  label="Name"
-                  variant="standard"
-                  fullWidth
-                />
-              </Grid>
-              <Grid item>
-                <TextField
-                  autoFocus
-                  id="desc"
-                  label="Description"
-                  variant="standard"
-                  fullWidth
-                />
-              </Grid>
+        <MissionDialog setErrMessage={setErrMessage} action={action} setAction={setAction} />
 
-              <Grid item>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DateTimePicker
-                    minDate={new Date()}
-                    minTime={new Date()}
-                    label="Launch Date"
-                    value={tempLaunchDate}
-                    onChange={handleTempLaunchDateChange}
-                    renderInput={(params) => (
-                      <TextField variant="standard" {...params} />
-                    )}
-                  />
-                </LocalizationProvider>
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleNewMissionClose}>Cancel</Button>
-            <Button onClick={handleNewMissionClose}>Save</Button>
-          </DialogActions>
-        </Dialog>
       </Container>
       <Snackbar
         open={errMessage != null}

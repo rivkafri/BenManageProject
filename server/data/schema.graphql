@@ -1,10 +1,12 @@
 type Query {
-  Mission(id: ID!): Mission
+  Mission(id: String!): Mission
   Missions(sort: MissionSortOptions): [Mission]!
 }
 
 type Mutation {
   createMission(mission: MissionInput): Mission
+  deleteMission(id: String!): Mission
+  editMission(id: String!,mission:MissionInput): Mission
 }
 
 input MissionInput {
@@ -46,6 +48,7 @@ input MissionSortOptions {
 enum MissionSortFields {
   Title
   Date
+  Operator
 }
 
 type Mission {

@@ -16,7 +16,7 @@ export type Launch = {
 export type Location = {
   name: String;
   longitude: Number;
-  Latitude: Number;
+  latitude: Number;
 }
 
 export type Orbit = {

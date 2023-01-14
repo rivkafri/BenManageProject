@@ -15,6 +15,10 @@ export const ListMissions = (missions: Mission[], args: any) => {
           a = new Date(aMission.launch.date);
           b = new Date(bMission.launch.date);
           break;
+        case "Operator":
+          a = aMission.operator;
+          b = bMission.operator;
+          break;
         default:
           a = "";
           b = "";
@@ -22,7 +26,7 @@ export const ListMissions = (missions: Mission[], args: any) => {
       if (args.sort?.desc === true) {
         return a < b ? 1 : -1;
       } else {
-        return a > b ? 1 : -1;        
+        return a > b ? 1 : -1;
       }
     });
   }
@@ -39,5 +43,21 @@ export const CreateMission = (mission: Mission): Mission => {
     .digest("hex")
     .substring(32);
 
+  return mission;
+};
+
+export const EditMission = (mission: Mission, args: any): Mission => {
+  mission!.title = args.title;
+  mission!.operator = args.operator;
+  mission!.launch.date = args.launch.date;
+  mission!.launch.vehicle = args.launch.vehicle;
+  mission!.launch.location.name = args.launch.location.name;
+  mission!.launch.location.longitude = args.launch.location.longitude;
+  mission!.launch.location.latitude = args.launch.location.latitude;
+  mission!.orbit.periapsis = args.orbit.periapsis;
+  mission!.orbit.apoapsis = args.orbit.apoapsis;
+  mission!.orbit.inclination = args.orbit.inclination;
+  mission!.payload.capacity = args.payload.capacity;
+  mission!.payload.available = args.payload.available;
   return mission;
 };
